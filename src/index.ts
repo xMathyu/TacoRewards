@@ -51,8 +51,8 @@ class TacoBot extends Client {
       logger.info('✅ Database connection established');
 
       // Load commands and events
-      await loadCommands(this);
-      await loadEvents(this);
+      loadCommands(this);
+      loadEvents(this);
 
       // Login to Discord
       await this.login(process.env['DISCORD_TOKEN']);

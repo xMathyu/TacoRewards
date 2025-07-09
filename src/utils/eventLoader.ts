@@ -1,6 +1,5 @@
 import { readdirSync } from 'fs';
 import { join } from 'path';
-import { pathToFileURL } from 'url';
 import type { Client } from 'discord.js';
 import { logger } from '@/utils/logger';
 
@@ -12,7 +11,7 @@ interface ExtendedClient extends Client {
 /**
  * Dynamically loads all event files from the events directory
  */
-export async function loadEvents(client: ExtendedClient): Promise<void> {
+export function loadEvents(client: ExtendedClient): void {
   const eventsPath = join(__dirname, '../events');
 
   try {
@@ -26,10 +25,10 @@ export async function loadEvents(client: ExtendedClient): Promise<void> {
       const filePath = join(eventsPath, file);
 
       try {
-        // Dynamically import the event module
-        // Convert to file URL for proper ESM loading on Windows
-        const fileUrl = pathToFileURL(filePath).href;
-        const eventModule = await import(fileUrl);
+        // Use require for better compatibility with module-alias
+        // Clear require cache to allow reloading
+        delete require.cache[require.resolve(filePath)];
+        const eventModule = require(filePath);
         const event = eventModule.default || eventModule;
 
         if (!event.name || !event.execute) {

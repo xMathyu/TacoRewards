@@ -1,6 +1,5 @@
 import { readdirSync } from 'fs';
 import { join } from 'path';
-import { pathToFileURL } from 'url';
 import type { Client } from 'discord.js';
 import type { Command } from '@/types/command';
 import { logger } from '@/utils/logger';
@@ -13,8 +12,10 @@ interface ExtendedClient extends Client {
 /**
  * Dynamically loads all command files from the commands directory
  */
-export async function loadCommands(client: ExtendedClient): Promise<void> {
+export function loadCommands(client: ExtendedClient): void {
   const commandsPath = join(__dirname, '../commands');
+
+  logger.debug(`📂 Looking for commands in: ${commandsPath}`);
 
   try {
     const commandCategories = readdirSync(commandsPath, { withFileTypes: true })
@@ -25,18 +26,22 @@ export async function loadCommands(client: ExtendedClient): Promise<void> {
 
     for (const category of commandCategories) {
       const categoryPath = join(commandsPath, category);
+      logger.debug(`📁 Scanning category: ${category} at ${categoryPath}`);
       const commandFiles = readdirSync(categoryPath).filter(
         (file: string) => (file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts'),
       );
 
+      logger.debug(`📄 Found command files: ${commandFiles.join(', ')}`);
+
       for (const file of commandFiles) {
         const filePath = join(categoryPath, file);
+        logger.debug(`📥 Attempting to load: ${filePath}`);
 
         try {
-          // Dynamically import the command module
-          // Convert to file URL for proper ESM loading on Windows
-          const fileUrl = pathToFileURL(filePath).href;
-          const commandModule = await import(fileUrl);
+          // Use require for better compatibility with module-alias
+          // Clear require cache to allow reloading
+          delete require.cache[require.resolve(filePath)];
+          const commandModule = require(filePath);
           const command: Command = commandModule.default || commandModule;
 
           if (!command.data || !command.execute) {
@@ -65,14 +70,14 @@ export async function loadCommands(client: ExtendedClient): Promise<void> {
 /**
  * Reloads a specific command by name
  */
-export async function reloadCommand(client: ExtendedClient, commandName: string): Promise<boolean> {
+export function reloadCommand(client: ExtendedClient, commandName: string): boolean {
   try {
-    // For ESM, we need to construct the full path and convert to file URL
+    // Construct the full path
     const commandPath = join(__dirname, `../commands/${commandName}`);
-    const fileUrl = pathToFileURL(commandPath).href;
 
-    // Reload the command
-    const commandModule = await import(fileUrl);
+    // Clear require cache and reload
+    delete require.cache[require.resolve(commandPath)];
+    const commandModule = require(commandPath);
     const command: Command = commandModule.default || commandModule;
 
     client.commands.set(command.data.name, command);

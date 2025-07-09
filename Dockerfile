@@ -4,20 +4,28 @@ FROM node:18-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY package*.json ./
 
-# Install dependencies including devDependencies for build
-RUN npm ci
+# Install all dependencies (including devDependencies for build)
+RUN npm ci --include=dev
 
-# Copy source code
+# Copy source code (dist is excluded in .dockerignore but will be built)
 COPY . .
 
 # Build the TypeScript application
 RUN npm run build
 
-# Remove devDependencies to reduce image size
-RUN npm ci --only=production && npm cache clean --force
+# Remove devDependencies to reduce image size (keep production deps)
+RUN npm ci --omit=dev && npm cache clean --force
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S tacobot -u 1001
+
+# Change ownership of the app directory
+RUN chown -R tacobot:nodejs /app
+USER tacobot
 
 # Expose port
 EXPOSE 3000

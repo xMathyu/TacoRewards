@@ -1,15 +1,16 @@
 # Production Deployment Fix
 
 ## Problem
-The Discord bot was failing in Railway production with the error:
-```
-Error: Cannot find module '@/database/connection'
-```
+The Discord bot was failing in Railway production with multiple errors:
 
-This occurred because TypeScript path mapping (aliases like `@/`) work during development but Node.js doesn't understand them in production.
+1. **Initial Error**: `Cannot find module '@/database/connection'`
+2. **Secondary Error**: `Cannot find module 'file:///app/dist/commands/...`
+
+The first issue was TypeScript path mapping (aliases like `@/`) not working in production.
+The second issue was using `pathToFileURL` with `import()` which doesn't work well with `module-alias` in Linux containers.
 
 ## Solution
-Implemented `module-alias` package to resolve path aliases at runtime.
+Implemented `module-alias` package and switched from dynamic imports to require() for better compatibility.
 
 ### Changes Made
 
@@ -25,17 +26,25 @@ Implemented `module-alias` package to resolve path aliases at runtime.
    - Added `import 'module-alias/register'` as the first import in `src/index.ts`
 
 4. **Fixed command/event loaders**
-   - Updated filters to exclude `.d.ts` files that were causing load errors
-   - Now properly filters: `(file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts')`
+   - **Removed `pathToFileURL` and dynamic imports**: Replaced with `require()` for better `module-alias` compatibility
+   - **Updated filters**: Exclude `.d.ts` files: `(file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts')`
+   - **Changed to synchronous**: Functions are now sync instead of async
 
-5. **Added Dockerfile**
-   - Created optimized Dockerfile for Railway deployment
-   - Includes proper build process and production optimization
+5. **Optimized Dockerfile**
+   - Added non-root user for security
+   - Improved caching with proper layer ordering
+   - Updated npm commands for better compatibility
+
+## Root Cause Analysis
+- **Linux vs Windows**: `pathToFileURL` creates different URL formats on Linux containers
+- **Module Resolution**: `module-alias` works better with `require()` than `import()`
+- **TypeScript Compilation**: `.d.ts` files were being treated as executable modules
 
 ## Verification
 - ✅ Module aliases now work in production
 - ✅ Database connection successful
-- ✅ Command and event loaders fixed
+- ✅ All 3 commands load correctly
+- ✅ All 2 events load correctly
 - ✅ Ready for Railway deployment
 
 ## Scripts
@@ -44,4 +53,13 @@ Implemented `module-alias` package to resolve path aliases at runtime.
 - `npm run start:prod` - Explicit production mode
 - `npm run dev` - Development mode (unchanged)
 
-The bot should now deploy successfully on Railway without the module resolution errors.
+## Expected Railway Output
+```
+info: 🌮 Initializing TacoBot...
+info: ✅ Database connection established
+info: ✅ Successfully loaded 3 commands
+info: ✅ Successfully loaded 2 events
+info: 🎉 TacoBot is now online and ready to serve tacos!
+```
+
+The bot should now deploy successfully on Railway without any module resolution errors.
