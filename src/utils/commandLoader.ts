@@ -26,7 +26,7 @@ export async function loadCommands(client: ExtendedClient): Promise<void> {
     for (const category of commandCategories) {
       const categoryPath = join(commandsPath, category);
       const commandFiles = readdirSync(categoryPath).filter(
-        (file: string) => file.endsWith('.ts') || file.endsWith('.js'),
+        (file: string) => (file.endsWith('.ts') || file.endsWith('.js')) && !file.endsWith('.d.ts'),
       );
 
       for (const file of commandFiles) {

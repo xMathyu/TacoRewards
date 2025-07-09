@@ -1,3 +1,4 @@
+import 'module-alias/register';
 import { Client, GatewayIntentBits, Collection } from 'discord.js';
 import { config } from 'dotenv';
 import { connectDatabase } from '@/database/connection';
