@@ -61,7 +61,7 @@ npm run format
 ## 📋 Commands
 
 ### User Commands
-- `/taco @user [amount] [reason]` - Give tacos to a user
+- `/give @user [amount] [reason]` - Give tacos to a user
 - `/my-stats` - View your taco statistics
 - `/leaderboard` - View server leaderboards
 - `/achievements` - View your achievements
