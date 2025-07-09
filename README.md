@@ -1,4 +1,4 @@
-# 🌮 TacoBot Discord
+# 🌮 TacoRewards - TacoBot Discord
 
 A fun and engaging Discord bot that brings peer-to-peer recognition and rewards to Discord servers, similar to HeyTaco for Slack.
 
